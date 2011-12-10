@@ -45,7 +45,7 @@
 #endif
 #include "mcu_periph/uart.h"
 #include "messages.h"
-#include "downlink.h"
+#include "subsystems/datalink/downlink.h"
 
 
 struct AhrsFloatDCM ahrs_impl;
@@ -142,6 +142,7 @@ void ahrs_update_fw_estimator( void )
 
   estimator_p = ahrs_float.body_rate.p;
   estimator_q = ahrs_float.body_rate.q;
+  estimator_r = ahrs_float.body_rate.r;
 /*
   RunOnceEvery(6,DOWNLINK_SEND_RMAT_DEBUG(DefaultChannel,
     &(DCM_Matrix[0][0]),

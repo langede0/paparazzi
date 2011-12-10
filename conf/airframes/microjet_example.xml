@@ -19,6 +19,7 @@
     <axis name="THROTTLE" failsafe_value="0"/>
     <axis name="ROLL"     failsafe_value="0"/>
     <axis name="PITCH"    failsafe_value="0"/>
+    <axis name="SHUTTER"    failsafe_value="0"/>
   </commands>
 
   <rc_commands>
@@ -67,13 +68,15 @@
     <define name="CORRECTION_RIGHT" value="1."/>
   </section>
 
-  <section name="GYRO" prefix="GYRO_">
-    <define name="ADC_ROLL_NEUTRAL" value="500"/>
-    <define name="DYNAMIC_RANGE" value="300" unit="deg/s"/>
-    <define name="ADXRS300_RESISTOR_BRIDGE" value="(3.3/(3.3+1.8))"/>
-    <define name="ADXRS300_SENSITIVITY" value="5" unit="mV/(deg/s)"/>
-    <define name="ROLL_SCALE" value="3.3*1000./1024./(GYRO_ADXRS300_SENSITIVITY*GYRO_ADXRS300_RESISTOR_BRIDGE)" unit="deg/s/adc_unit"/>
-    <define name="ROLL_DIRECTION" value="1."/>
+  <section name="IMU" prefix="IMU_">
+    <define name="GYRO_P_SIGN"  value="1"/>
+    <define name="GYRO_P_NEUTRAL" value="500"/>
+    <!--define name="ADXRS300_RESISTOR_BRIDGE" value="(3.3/(3.3+1.8))"/-->
+    <!--define name="ADXRS300_SENSITIVITY" value="5" unit="mV/(deg/s)"/-->
+    <!--define name="ROLL_SCALE" value="3.3*1000./1024./(IMU_ADXRS300_SENSITIVITY*IMU_ADXRS300_RESISTOR_BRIDGE)" unit="deg/s/adc_unit"/-->
+    <!--define name="RATE_DEGS_TO_RADINT" value="M_PI/180./4096."/-->
+    <!--define name="GYRO_P_SENS" value="IMU_RATE_DEGS_TO_RADINT * IMU_ROLL_SCALE" integer="16"/-->
+    <define name="GYRO_P_SENS" value="0.137518981" integer="16"/>
   </section>
 
   <section name="BAT">
@@ -93,9 +96,6 @@
 
     <define name="DEFAULT_CIRCLE_RADIUS" value="80."/>
 
-    <define name="GLIDE_AIRSPEED" value="10"/>
-    <define name="GLIDE_VSPEED" value="3."/>
-    <define name="GLIDE_PITCH" value="45" unit="deg"/>
   </section>
 
   <section name="VERTICAL CONTROL" prefix="V_CTL_">
@@ -120,7 +120,8 @@
   </section>
 
   <section name="HORIZONTAL CONTROL" prefix="H_CTL_">
-    <define name="COURSE_PGAIN" value="-1.4"/>
+    <define name="COURSE_PGAIN" value="-1.0"/>
+    <define name="COURSE_DGAIN" value="0.3"/>
 
     <define name="ROLL_MAX_SETPOINT" value="0.6" unit="radians"/>
     <define name="PITCH_MAX_SETPOINT" value="0.5" unit="radians"/>
@@ -155,12 +156,6 @@
     <define name="DEFAULT_PITCH" value="0.5" unit="rad"/>
   </section>
 
-  <section name="DATALINK" prefix="DATALINK_">
-    <define name="DEVICE_TYPE" value="XBEE"/>
-    <define name="DEVICE_ADDRESS" value="...."/>
-  </section>
-
-
   <section name="SIMU">
     <define name="JSBSIM_MODEL" value="&quot;Malolo1&quot;"/>
     <define name="JSBSIM_IR_ROLL_NEUTRAL" value="RadOfDeg(0.)"/>
@@ -186,15 +181,20 @@
 
     <subsystem name="control"/>
     <!-- Sensors -->
-    <subsystem name="gyro"          type="roll"/>
-    <subsystem name="ahrs" 		type="infrared"/>
-    <subsystem name="gps" 		    type="ublox_utm"/>
+    <subsystem name="imu"       type="analog">
+      <configure name="GYRO_P" value="ADC_3"/>
+    </subsystem>
+    <subsystem name="ahrs"      type="infrared"/>
+    <subsystem name="gps"       type="ublox_utm"/>
     <subsystem name="navigation"/>
 
   </firmware>
 
   <modules>
     <load name="infrared_adc.xml"/>
+    <load name="digital_cam_servo.xml">
+      <define name="DC_SHUTTER_SERVO" value="COMMAND_SHUTTER" />
+    </load>
   </modules>
 
 

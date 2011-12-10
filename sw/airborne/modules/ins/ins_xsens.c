@@ -34,7 +34,7 @@
 #include "generated/airframe.h"
 
 #include "sys_time.h"
-#include "downlink.h"
+#include "subsystems/datalink/downlink.h"
 #include "messages.h"
 
 #ifdef USE_GPS_XSENS
@@ -187,7 +187,7 @@ uint8_t xsens_msg_buf[XSENS_MAX_PAYLOAD];
 #endif
 #include "mcu_periph/uart.h"
 #include "messages.h"
-#include "downlink.h"
+#include "subsystems/datalink/downlink.h"
 
 
 uint8_t xsens_errorcode;
@@ -303,10 +303,10 @@ void handle_ins_msg( void) {
   // Send to Estimator (Control)
 #ifdef XSENS_BACKWARDS
   EstimatorSetAtt((-ins_phi+ins_roll_neutral), (ins_psi + RadOfDeg(180)), (-ins_theta+ins_pitch_neutral));
-  EstimatorSetRate(-ins_p,-ins_q);
+  EstimatorSetRate(-ins_p,-ins_q, ins_r);
 #else
   EstimatorSetAtt(ins_phi+ins_roll_neutral, ins_psi, ins_theta+ins_pitch_neutral);
-  EstimatorSetRate(ins_p,ins_q);
+  EstimatorSetRate(ins_p, ins_q, ins_r);
 #endif
 
   // Position

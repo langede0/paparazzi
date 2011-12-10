@@ -29,7 +29,7 @@
 // Downlink
 #include "mcu_periph/uart.h"
 #include "messages.h"
-#include "downlink.h"
+#include "subsystems/datalink/downlink.h"
 
 #ifndef DOWNLINK_DEVICE
 #define DOWNLINK_DEVICE DOWNLINK_AP_DEVICE
@@ -69,10 +69,10 @@ void imu_impl_init(void)
 void imu_periodic( void )
 {
   // Start reading the latest gyroscope data
-  itg3200_periodic();
+  Itg3200Periodic();
 
   // Start reading the latest accelerometer data
-  adxl345_periodic();
+  Adxl345Periodic();
 
   //RunOnceEvery(10,imu_umarim_downlink_raw());
 }

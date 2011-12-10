@@ -23,7 +23,6 @@
 // TODO
 //
 // gravity heuristic
-// gps based gravity correction
 // gps update for yaw on fixed wing ?
 //
 
@@ -32,6 +31,9 @@
 #include "subsystems/ahrs/ahrs_int_utils.h"
 
 #include "subsystems/imu.h"
+#ifdef USE_GPS
+#include "subsystems/gps.h"
+#endif
 #include "math/pprz_trig_int.h"
 #include "math/pprz_algebra_int.h"
 
@@ -45,28 +47,28 @@ static inline void ahrs_update_mag_2d(void);
 
 /* in place quaternion first order integration with constante rotational velocity */
 /*  */
-#define INT32_QUAT_INTEGRATE_FI(_q, _hr, _omega, _f) {			\
-    _hr.qi += -_omega.p*_q.qx - _omega.q*_q.qy - _omega.r*_q.qz;	\
-    _hr.qx +=  _omega.p*_q.qi + _omega.r*_q.qy - _omega.q*_q.qz;	\
-    _hr.qy +=  _omega.q*_q.qi - _omega.r*_q.qx + _omega.p*_q.qz;	\
-    _hr.qz +=  _omega.r*_q.qi + _omega.q*_q.qx - _omega.p*_q.qy;	\
-									\
-    ldiv_t _div = ldiv(_hr.qi, ((1<<INT32_RATE_FRAC)*_f*2));		\
-    _q.qi+= _div.quot;							\
-    _hr.qi = _div.rem;							\
-									\
-    _div = ldiv(_hr.qx, ((1<<INT32_RATE_FRAC)*_f*2));			\
-    _q.qx+= _div.quot;							\
-    _hr.qx = _div.rem;							\
-									\
-    _div = ldiv(_hr.qy, ((1<<INT32_RATE_FRAC)*_f*2));			\
-    _q.qy+= _div.quot;							\
-    _hr.qy = _div.rem;							\
-									\
-    _div = ldiv(_hr.qz, ((1<<INT32_RATE_FRAC)*_f*2));			\
-    _q.qz+= _div.quot;							\
-    _hr.qz = _div.rem;							\
-									\
+#define INT32_QUAT_INTEGRATE_FI(_q, _hr, _omega, _f) {              \
+    _hr.qi += -_omega.p*_q.qx - _omega.q*_q.qy - _omega.r*_q.qz;    \
+    _hr.qx +=  _omega.p*_q.qi + _omega.r*_q.qy - _omega.q*_q.qz;    \
+    _hr.qy +=  _omega.q*_q.qi - _omega.r*_q.qx + _omega.p*_q.qz;    \
+    _hr.qz +=  _omega.r*_q.qi + _omega.q*_q.qx - _omega.p*_q.qy;    \
+                                                                    \
+    ldiv_t _div = ldiv(_hr.qi, ((1<<INT32_RATE_FRAC)*_f*2));        \
+    _q.qi+= _div.quot;                                              \
+    _hr.qi = _div.rem;                                              \
+                                                                    \
+    _div = ldiv(_hr.qx, ((1<<INT32_RATE_FRAC)*_f*2));               \
+    _q.qx+= _div.quot;                                              \
+    _hr.qx = _div.rem;                                              \
+                                                                    \
+    _div = ldiv(_hr.qy, ((1<<INT32_RATE_FRAC)*_f*2));               \
+    _q.qy+= _div.quot;                                              \
+    _hr.qy = _div.rem;                                              \
+                                                                    \
+    _div = ldiv(_hr.qz, ((1<<INT32_RATE_FRAC)*_f*2));               \
+    _q.qz+= _div.quot;                                              \
+    _hr.qz = _div.rem;                                              \
+                                                                    \
   }
 
 
@@ -159,21 +161,38 @@ void ahrs_propagate(void) {
 
 void ahrs_update_accel(void) {
 
+  // c2 = ltp z-axis in imu-frame
   struct Int32Vect3 c2 = { RMAT_ELMT(ahrs.ltp_to_imu_rmat, 0,2),
-			   RMAT_ELMT(ahrs.ltp_to_imu_rmat, 1,2),
-			   RMAT_ELMT(ahrs.ltp_to_imu_rmat, 2,2)};
+                           RMAT_ELMT(ahrs.ltp_to_imu_rmat, 1,2),
+                           RMAT_ELMT(ahrs.ltp_to_imu_rmat, 2,2)};
   struct Int32Vect3 residual;
 #ifdef AHRS_GRAVITY_UPDATE_COORDINATED_TURN
-  // FIXME: check overflow ?
-  const struct Int32Vect3 Xdd_imu = {
-    0,
-     ((ahrs_impl.ltp_vel_norm>>INT32_ACCEL_FRAC) * ahrs.imu_rate.r)
-    >>(INT32_SPEED_FRAC+INT32_RATE_FRAC-INT32_ACCEL_FRAC-INT32_ACCEL_FRAC),
-    -((ahrs_impl.ltp_vel_norm>>INT32_ACCEL_FRAC) * ahrs.imu_rate.q)
-    >>(INT32_SPEED_FRAC+INT32_RATE_FRAC-INT32_ACCEL_FRAC-INT32_ACCEL_FRAC)
-  };
+#ifdef USE_GPS
+  ahrs_impl.ltp_vel_norm = SPEED_BFP_OF_REAL(gps.speed_3d / 100.);
+#endif
+  /*
+   * centrifugal acceleration in body frame
+   * a_c_body = omega x (omega x r)
+   * (omega x r) = tangential velocity in body frame
+   * a_c_body = omega x vel_tangential_body
+   * assumption: tangential velocity only along body x-axis
+   */
+
+  // FIXME: check overflows !
+  const struct Int32Vect3 vel_tangential_body = {(ahrs_impl.ltp_vel_norm>>INT32_ACCEL_FRAC), 0.0, 0.0};
+  struct Int32Vect3 acc_c_body;
+  VECT3_RATES_CROSS_VECT3(acc_c_body, ahrs.body_rate, vel_tangential_body);
+  INT32_VECT3_RSHIFT(acc_c_body, acc_c_body, INT32_SPEED_FRAC+INT32_RATE_FRAC-INT32_ACCEL_FRAC-INT32_ACCEL_FRAC);
+
+  /* convert centrifucal acceleration from body to imu frame */
+  struct Int32Vect3 acc_c_imu;
+  INT32_RMAT_VMULT(acc_c_imu, imu.body_to_imu_rmat, acc_c_body);
+
+  /* and subtract it from imu measurement to get a corrected measurement of the gravitiy vector */
   struct Int32Vect3 corrected_gravity;
-  VECT3_DIFF(corrected_gravity, imu.accel, Xdd_imu);
+  INT32_VECT3_DIFF(corrected_gravity, imu.accel, acc_c_imu);
+
+  /* compute the residual of gravity vector in imu frame */
   INT32_VECT3_CROSS_PRODUCT(residual, corrected_gravity, c2);
 #else
   INT32_VECT3_CROSS_PRODUCT(residual, imu.accel, c2);
@@ -216,8 +235,8 @@ void ahrs_update_mag(void) {
 
 static inline void ahrs_update_mag_full(void) {
   const struct Int32Vect3 expected_ltp = {MAG_BFP_OF_REAL(AHRS_H_X),
-					  MAG_BFP_OF_REAL(AHRS_H_Y),
-					  MAG_BFP_OF_REAL(AHRS_H_Z)};
+                                          MAG_BFP_OF_REAL(AHRS_H_Y),
+                                          MAG_BFP_OF_REAL(AHRS_H_Z)};
   struct Int32Vect3 expected_imu;
   INT32_RMAT_VMULT(expected_imu, ahrs.ltp_to_imu_rmat, expected_ltp);
 
@@ -229,9 +248,9 @@ static inline void ahrs_update_mag_full(void) {
   ahrs_impl.rate_correction.r += residual.z/32/16;
 
 
-  ahrs_impl.high_rez_bias.p += -residual.x/32*1024;
-  ahrs_impl.high_rez_bias.q += -residual.y/32*1024;
-  ahrs_impl.high_rez_bias.r += -residual.z/32*1024;
+  ahrs_impl.high_rez_bias.p -= residual.x/32*1024;
+  ahrs_impl.high_rez_bias.q -= residual.y/32*1024;
+  ahrs_impl.high_rez_bias.r -= residual.z/32*1024;
 
 
   INT_RATES_RSHIFT(ahrs_impl.gyro_bias, ahrs_impl.high_rez_bias, 28);
@@ -242,7 +261,7 @@ static inline void ahrs_update_mag_full(void) {
 static inline void ahrs_update_mag_2d(void) {
 
   const struct Int32Vect2 expected_ltp = {MAG_BFP_OF_REAL(AHRS_H_X),
-					  MAG_BFP_OF_REAL(AHRS_H_Y)};
+                                          MAG_BFP_OF_REAL(AHRS_H_Y)};
 
   struct Int32Vect3 measured_ltp;
   INT32_RMAT_TRANSP_VMULT(measured_ltp, ahrs.ltp_to_imu_rmat, imu.mag);
@@ -348,6 +367,7 @@ void ahrs_update_fw_estimator(void)
   RATES_FLOAT_OF_BFP(rates, ahrs.body_rate);
   estimator_p = rates.p;
   estimator_q = rates.q;
+  estimator_r = rates.r;
 
 }
 #endif //AHRS_UPDATE_FW_ESTIMATOR

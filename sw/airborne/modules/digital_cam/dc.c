@@ -54,7 +54,7 @@ uint16_t dc_buffer = 0;
 #endif
 #include "mcu_periph/uart.h"
 #include "messages.h"
-#include "downlink.h"
+#include "subsystems/datalink/downlink.h"
 #include "estimator.h"
 #include "subsystems/gps.h"
 
@@ -145,7 +145,7 @@ uint8_t dc_survey(float interval, float x, float y) {
     dc_gps_x = x;
     dc_gps_y = y;
   }
-  dc_gps_next_dist = interval;
+  dc_gps_next_dist = 0;
   dc_info();
   return 0;
 }

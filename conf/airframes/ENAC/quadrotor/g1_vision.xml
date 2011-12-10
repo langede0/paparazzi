@@ -174,9 +174,7 @@
  </section>
 
  <section name="BAT">
-   <define name="MILLIAMP_PER_PERCENT" value="0.86"/>
    <define name="CATASTROPHIC_BAT_LEVEL" value="9.3" unit="V"/>
-   <define name="BATTERY_SENS"   value="0.183" integer="16"/>
  </section>
 
  <section name="AUTOPILOT">
@@ -233,8 +231,8 @@ include $(CFG_BOOZ)/subsystems/booz2_ahrs_cmpl.makefile
 #include $(CFG_BOOZ)/subsystems/booz2_ins_hff.makefile
 #ap.CFLAGS += -DR_POS=0.1
 
-ap.CFLAGS += -DUSE_ADAPT_HOVER -DUSE_INS_NAV_INIT -DBOOZ_START_DELAY=3
-sim.CFLAGS += -DUSE_ADAPT_HOVER -DUSE_INS_NAV_INIT -DBOOZ_START_DELAY=3
+ap.CFLAGS += -DUSE_ADAPT_HOVER -DUSE_INS_NAV_INIT -DACTUATORS_START_DELAY=3
+sim.CFLAGS += -DUSE_ADAPT_HOVER -DUSE_INS_NAV_INIT -DACTUATORS_START_DELAY=3
 
 ap.CFLAGS += -DUSE_MODULES
 

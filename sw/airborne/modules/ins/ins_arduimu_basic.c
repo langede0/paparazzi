@@ -54,7 +54,7 @@
 #endif
 #include "mcu_periph/uart.h"
 #include "messages.h"
-#include "downlink.h"
+#include "subsystems/datalink/downlink.h"
 #endif
 
 struct i2c_transaction ardu_gps_trans;
@@ -189,6 +189,7 @@ void ArduIMU_event( void ) {
     estimator_theta = arduimu_eulers.theta - ins_pitch_neutral;
     estimator_p = arduimu_rates.p;
     estimator_q = arduimu_rates.q;
+    estimator_r = arduimu_rates.r;
     ardu_ins_trans.status = I2CTransDone;
 
 #ifdef ARDUIMU_SYNC_SEND

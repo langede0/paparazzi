@@ -22,7 +22,7 @@ C code to connect a CHIMU using uart
 
 #include "mcu_periph/uart.h"
 #include "messages.h"
-#include "downlink.h"
+#include "subsystems/datalink/downlink.h"
 
 #include "ins_module.h"
 #include "imu_chimu.h"
@@ -87,7 +87,7 @@ void parse_ins_msg( void )
     }
 
     EstimatorSetAtt(CHIMU_DATA.m_attitude.euler.phi, CHIMU_DATA.m_attitude.euler.psi, CHIMU_DATA.m_attitude.euler.theta);
-    EstimatorSetRate(CHIMU_DATA.m_sensor.rate[0],CHIMU_DATA.m_attrates.euler.theta);
+    EstimatorSetRate(CHIMU_DATA.m_sensor.rate[0],CHIMU_DATA.m_attrates.euler.theta,0.); // FIXME rate r
       }
       else if(CHIMU_DATA.m_MsgID==0x02)
       {
@@ -108,9 +108,9 @@ void ins_periodic_task( void )
 
   float gps_speed = 0;
 
-  if (gps.fix == GPS_FIX_3D) 
+  if (gps.fix == GPS_FIX_3D)
   {
-    gps_speed = gps.speed_3d/100.; 
+    gps_speed = gps.speed_3d/100.;
   }
   gps_speed = FloatSwap(gps_speed);
 

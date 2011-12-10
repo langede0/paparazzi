@@ -87,8 +87,7 @@ $(TARGET).srcs += math/pprz_geodetic_int.c math/pprz_geodetic_float.c math/pprz_
 #
 # I2C
 #
-$(TARGET).srcs += mcu_periph/i2c.c
-$(TARGET).srcs += $(SRC_ARCH)/mcu_periph/i2c_arch.c
+include $(CFG_SHARED)/i2c_select.makefile
 
 ######################################################################
 ##
@@ -161,6 +160,7 @@ fbw_CFLAGS		+= -DFBW
 fbw_srcs 		+= $(SRC_FIRMWARE)/main_fbw.c
 fbw_srcs 		+= subsystems/electrical.c
 fbw_srcs 		+= $(SRC_FIXEDWING)/commands.c
+fbw_srcs		+= $(SRC_FIRMWARE)/fbw_downlink.c
 
 ######################################################################
 ##
@@ -170,6 +170,7 @@ fbw_srcs 		+= $(SRC_FIXEDWING)/commands.c
 ap_CFLAGS 		+= -DAP
 ap_srcs 		+= $(SRC_FIRMWARE)/main_ap.c
 ap_srcs 		+= $(SRC_FIXEDWING)/estimator.c
+ap_srcs			+= $(SRC_FIRMWARE)/ap_downlink.c
 
 
 ######################################################################
@@ -190,7 +191,7 @@ sim.CFLAGS 		+= -DSITL
 sim.srcs 		+= $(SRC_ARCH)/sim_ap.c
 
 sim.CFLAGS 		+= -DDOWNLINK -DDOWNLINK_TRANSPORT=IvyTransport
-sim.srcs 		+= downlink.c $(SRC_FIRMWARE)/datalink.c $(SRC_ARCH)/sim_gps.c $(SRC_ARCH)/ivy_transport.c $(SRC_ARCH)/sim_adc_generic.c
+sim.srcs 		+= subsystems/datalink/downlink.c $(SRC_FIRMWARE)/datalink.c $(SRC_ARCH)/sim_gps.c $(SRC_ARCH)/ivy_transport.c $(SRC_ARCH)/sim_adc_generic.c
 
 sim.srcs 		+= subsystems/settings.c
 sim.srcs 		+= $(SRC_ARCH)/subsystems/settings_arch.c
